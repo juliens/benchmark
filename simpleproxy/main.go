@@ -50,7 +50,7 @@ func main() {
 
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
-		MaxIdleConnsPerHost:   200,
+		MaxIdleConnsPerHost:   500,
 		DialContext:           dialer.DialContext,
 		IdleConnTimeout:       30 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,

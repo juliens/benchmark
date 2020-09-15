@@ -5,7 +5,8 @@
     address = ":443"
   [entryPoints.websecure.http.tls]
 
-
+[serversTransport]
+maxIdleConnsPerHost=500
 [providers.file]
   filename = "/etc/traefik/dynamic_conf.toml"
 
