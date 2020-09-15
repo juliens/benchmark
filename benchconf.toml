@@ -4,9 +4,3 @@ url="https://127.0.0.1:8443/bench"
 url="https://127.0.0.1:8444/bench"
 ["HaProxy TLS"]
 url="https://127.0.0.1:8445/bench"
-#["SimpleReverse"]
-#url="http://127.0.0.1:8080/bench"
-#["Traefik"]
-#url="http://127.0.0.1:8081/bench"
-#["HaProxy"]
-#url="http://127.0.0.1:8082/bench"

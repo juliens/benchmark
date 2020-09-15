@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -25,6 +26,9 @@ type benchConfig struct {
 }
 
 func main() {
+	config := flag.String("config", "./benchconf.toml", "config file for bench")
+	output := flag.String("output", "./output.html", "output file path")
+	flag.Parse()
 	page := charts.NewPage()
 	page.InitOpts.PageTitle = "ReverseProxy benchmark"
 	bar := charts.NewBar()
@@ -34,7 +38,10 @@ func main() {
 	statusBar.SetGlobalOptions(charts.TitleOpts{Title: "Status code"}, charts.ToolboxOpts{Show: false})
 
 	var tests map[string]benchConfig
-	_, err := toml.DecodeFile("./benchconf.toml", &tests)
+	if config == nil || len(*config)==0 {
+		log.Fatal("No config file")
+	}
+	_, err := toml.DecodeFile(*config, &tests)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -90,7 +97,7 @@ func main() {
 		})
 	}
 
-	create, err := os.Create("./output.html")
+	create, err := os.Create(*output)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -129,14 +136,14 @@ func hey(config benchConfig) (float64, map[string]int, []float64) {
 			case <-timer.C:
 				w.Stop()
 				return
-			// case <-ticker.C:
-			// 	cmd := exec.Command(config.cmdCPU[0], config.cmdCPU[1:]...)
-			// 	var out bytes.Buffer
-			// 	cmd.Stdout = &out
-			// 	cmd.Stderr = &out
-			// 	cmd.Run()
-			// 	cpuStat, _ := strconv.ParseFloat(strings.TrimSpace(out.String()), 64)
-			// 	cpus = append(cpus, cpuStat)
+				// case <-ticker.C:
+				// 	cmd := exec.Command(config.cmdCPU[0], config.cmdCPU[1:]...)
+				// 	var out bytes.Buffer
+				// 	cmd.Stdout = &out
+				// 	cmd.Stderr = &out
+				// 	cmd.Run()
+				// 	cpuStat, _ := strconv.ParseFloat(strings.TrimSpace(out.String()), 64)
+				// 	cpus = append(cpus, cpuStat)
 			}
 		}
 
@@ -153,7 +160,6 @@ func hey(config benchConfig) (float64, map[string]int, []float64) {
 	var firstOffset float64
 	for {
 		record, err := reader.Read()
-
 
 		if first {
 			if len(record) < 8 {
