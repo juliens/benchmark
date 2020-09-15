@@ -1,0 +1,36 @@
+---
+version: "3.4"
+
+services:
+  simple:
+    container_name: simplereverse
+    build: ./simpleproxy
+    command:
+      -backend=whoami
+    restart: always
+    ports:
+      - 8080:80
+      - 8443:443
+  traefik:
+    container_name: traefik
+    image: traefik:2.2
+    restart: always
+    ports:
+      - 8081:80
+      - 8444:443
+    volumes:
+    - ./traefik:/etc/traefik/
+  haproxy:
+    container_name: haproxy
+    image: haproxytech/haproxy-ubuntu:2.1.4
+    restart: always
+    ports:
+      - 8082:80
+      - 8445:443
+    volumes:
+    - ./haproxy:/etc/haproxy/
+
+  whoami:
+    container_name: whoami
+    image: containous/whoami
+    restart: always

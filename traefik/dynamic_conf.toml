@@ -1,0 +1,13 @@
+[http]
+  # Add the router
+  [http.routers]
+    [http.routers.web]
+      service = "service-foo"
+      rule = "Host(`127.0.0.1`)"
+
+    # Add the service
+    [http.services]
+      [http.services.service-foo]
+        [http.services.service-foo.loadBalancer]
+          [[http.services.service-foo.loadBalancer.servers]]
+            url = "http://whoami"
