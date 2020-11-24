@@ -4,3 +4,5 @@ url="http://envoy:8080/bench"
 url="http://traefik/bench"
 ["HaProxy"]
 url="http://haproxy/bench"
+["Reverse"]
+url="http://reverseproxy/bench"
