@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	// _ "net/http/pprof"
 	"sync"
 	"time"
 )
@@ -36,6 +37,7 @@ func (b *bufferPool) Put(bytes []byte) {
 }
 
 func main() {
+	// debug.SetGCPercent(1000)
 	host := flag.String("backend", "172.17.0.2", "Backend hostname or ip")
 	flag.Parse()
 	if host == nil {
@@ -87,7 +89,12 @@ func main() {
 		Certificates: []tls.Certificate{*cert},
 	})
 
-	go func () {
+	// go func() {
+	// 	http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
+	// 	http.ListenAndServe(":8080", http.DefaultServeMux)
+	// }()
+
+	go func() {
 		err := srv.Serve(ln)
 		if err != nil {
 			log.Fatal(err)

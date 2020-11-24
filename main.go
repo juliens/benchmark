@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -16,16 +17,21 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/go-echarts/go-echarts/charts"
 	"github.com/rakyll/hey/requester"
+	vegeta "github.com/tsenart/vegeta/lib"
 )
 
-const benchDuration = 30 * time.Second
+const benchDuration = 60 * time.Second
 
 type benchConfig struct {
 	Url    string
 	cmdCPU []string
 }
 
+
+
 func main() {
+	var caller func (config benchConfig) (float64, map[string]int, []float64)
+	caller = vegetaCall
 	config := flag.String("config", "./benchconf.toml", "config file for bench")
 	output := flag.String("output", "./output.html", "output file path")
 	flag.Parse()
@@ -38,7 +44,7 @@ func main() {
 	statusBar.SetGlobalOptions(charts.TitleOpts{Title: "Status code"}, charts.ToolboxOpts{Show: false})
 
 	var tests map[string]benchConfig
-	if config == nil || len(*config)==0 {
+	if config == nil || len(*config) == 0 {
 		log.Fatal("No config file")
 	}
 	_, err := toml.DecodeFile(*config, &tests)
@@ -67,7 +73,7 @@ func main() {
 	for proxy, url := range tests {
 		time.Sleep(time.Second)
 		fmt.Println(url)
-		reqs, statuses, cpus := hey(url)
+		reqs, statuses, cpus := caller(url)
 		fmt.Println(cpus)
 		proxiesStatuses[proxy] = statuses
 
@@ -106,6 +112,28 @@ func main() {
 	page.Add(statusBar)
 	page.Render(create)
 
+}
+
+func vegetaCall(config benchConfig) (float64, map[string]int, []float64) {
+	rate := vegeta.Rate{Freq: 0, Per: 0}
+	duration := benchDuration
+	targeter := vegeta.NewStaticTargeter(vegeta.Target{
+		Method: "GET",
+		URL:    config.Url,
+	})
+
+	cfg := &tls.Config{InsecureSkipVerify: true}
+	attacker := vegeta.NewAttacker(vegeta.TLSConfig(cfg), vegeta.MaxWorkers(250))
+
+	var metrics vegeta.Metrics
+	for res := range attacker.Attack(targeter, rate, duration, "Big Bang!") {
+		metrics.Add(res)
+	}
+	metrics.Close()
+	return metrics.Rate, metrics.StatusCodes, nil
+	// fmt.Printf("99th percentile: %s\n", metrics.Latencies.P99)
+	// vegeta.Client()
+	// vegeta.Attacker{}
 }
 
 func hey(config benchConfig) (float64, map[string]int, []float64) {

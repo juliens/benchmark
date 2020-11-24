@@ -1,0 +1,6 @@
+["Envoy"]
+url="http://envoy:8080/bench"
+["Traefik"]
+url="http://traefik/bench"
+["HaProxy"]
+url="http://haproxy/bench"

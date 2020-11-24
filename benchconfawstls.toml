@@ -1,0 +1,6 @@
+["Envoy TLS"]
+url="https://envoy:8443/bench"
+["Traefik TLS"]
+url="https://traefik/bench"
+["HaProxy TLS"]
+url="https://haproxy/bench"
