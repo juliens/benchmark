@@ -13,48 +13,51 @@
 
     
 <div class="container">
-    <div class="item" id="dNdfANAkXoor"
+    <div class="item" id="TlFAptBCqUlu"
          style="width:900px;height:500px;"></div>
 </div>
 <script type="text/javascript">
     "use strict";
-    var myChart_dNdfANAkXoor = echarts.init(document.getElementById('dNdfANAkXoor'), "white");
-    var option_dNdfANAkXoor = {
-        title: {"text":"Benchmark during 1m0s per proxy",},
+    var myChart_TlFAptBCqUlu = echarts.init(document.getElementById('TlFAptBCqUlu'), "white");
+    var option_TlFAptBCqUlu = {
+        title: {"text":"Benchmark during 3s per proxy",},
         tooltip: {},
         legend: {},
         xAxis: [{"data":["Proxies"],"splitArea":{"show":false,},"splitLine":{"show":false,}}],
         yAxis: [{"axisLabel":{"show":true},"splitArea":{"show":false,},"splitLine":{"show":false,}}],
         series: [
-        {"name":"Traefik TLS","type":"bar","data":[17034],"label":{"show":true,"position":"top","formatter":"{a}: {c} req/s"},"emphasis":{"label":{"show":false},},"markLine":{"label":{"show":false}},"markPoint":{"label":{"show":false}},},
-        {"name":"HaProxy TLS","type":"bar","data":[36612],"label":{"show":true,"position":"top","formatter":"{a}: {c} req/s"},"emphasis":{"label":{"show":false},},"markLine":{"label":{"show":false}},"markPoint":{"label":{"show":false}},},
+        {"name":"SimpleReversefds TLS","type":"bar","data":[27284],"label":{"show":true,"position":"top","formatter":"{a}: {c} req/s"},"emphasis":{"label":{"show":false},},"markLine":{"label":{"show":false}},"markPoint":{"label":{"show":false}},},
+        {"name":"SimpleReversefdccs TLS","type":"bar","data":[26401],"label":{"show":true,"position":"top","formatter":"{a}: {c} req/s"},"emphasis":{"label":{"show":false},},"markLine":{"label":{"show":false}},"markPoint":{"label":{"show":false}},},
+        {"name":"SimpleReverse TLS","type":"bar","data":[28772],"label":{"show":true,"position":"top","formatter":"{a}: {c} req/s"},"emphasis":{"label":{"show":false},},"markLine":{"label":{"show":false}},"markPoint":{"label":{"show":false}},},
+        {"name":"Traefik TLS","type":"bar","data":[23356],"label":{"show":true,"position":"top","formatter":"{a}: {c} req/s"},"emphasis":{"label":{"show":false},},"markLine":{"label":{"show":false}},"markPoint":{"label":{"show":false}},},
+        {"name":"HaProxy TLS","type":"bar","data":[35712],"label":{"show":true,"position":"top","formatter":"{a}: {c} req/s"},"emphasis":{"label":{"show":false},},"markLine":{"label":{"show":false}},"markPoint":{"label":{"show":false}},},
         ],
         color: ["#c23531","#2f4554","#61a0a8","#d48265","#91c7ae","#749f83","#ca8622","#bda29a","#6e7074","#546570","#c4ccd3"],
     };
-    myChart_dNdfANAkXoor.setOption(option_dNdfANAkXoor);
+    myChart_TlFAptBCqUlu.setOption(option_TlFAptBCqUlu);
 </script>
 
     <br/>
     
 <div class="container">
-    <div class="item" id="MBcfJKJMUvTv"
+    <div class="item" id="slnYtfNUzmkd"
          style="width:900px;height:500px;"></div>
 </div>
 <script type="text/javascript">
     "use strict";
-    var myChart_MBcfJKJMUvTv = echarts.init(document.getElementById('MBcfJKJMUvTv'), "white");
-    var option_MBcfJKJMUvTv = {
+    var myChart_slnYtfNUzmkd = echarts.init(document.getElementById('slnYtfNUzmkd'), "white");
+    var option_slnYtfNUzmkd = {
         title: {"text":"Status code",},
         tooltip: {},
         legend: {},
-        xAxis: [{"data":["Traefik TLS","HaProxy TLS"],"splitArea":{"show":false,},"splitLine":{"show":false,}}],
+        xAxis: [{"data":["SimpleReversefds TLS","SimpleReversefdccs TLS","SimpleReverse TLS","Traefik TLS","HaProxy TLS"],"splitArea":{"show":false,},"splitLine":{"show":false,}}],
         yAxis: [{"axisLabel":{"show":true},"splitArea":{"show":false,},"splitLine":{"show":false,}}],
         series: [
-        {"name":"200","type":"bar","data":[1022091,2196733],"label":{"show":true,"position":"top","formatter":"{a}: {c}"},"emphasis":{"label":{"show":false},},"markLine":{"label":{"show":false}},"markPoint":{"label":{"show":false}},},
+        {"name":"200","type":"bar","data":[81856,79212,86376,70170,107140],"label":{"show":true,"position":"top","formatter":"{a}: {c}"},"emphasis":{"label":{"show":false},},"markLine":{"label":{"show":false}},"markPoint":{"label":{"show":false}},},
         ],
         color: ["#c23531","#2f4554","#61a0a8","#d48265","#91c7ae","#749f83","#ca8622","#bda29a","#6e7074","#546570","#c4ccd3"],
     };
-    myChart_MBcfJKJMUvTv.setOption(option_MBcfJKJMUvTv);
+    myChart_slnYtfNUzmkd.setOption(option_slnYtfNUzmkd);
 </script>
 
     <br/>

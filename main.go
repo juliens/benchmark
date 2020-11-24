@@ -20,7 +20,7 @@ import (
 	vegeta "github.com/tsenart/vegeta/lib"
 )
 
-const benchDuration = 60 * time.Second
+const benchDuration = 30 * time.Second
 
 type benchConfig struct {
 	Url    string
@@ -30,10 +30,10 @@ type benchConfig struct {
 
 
 func main() {
-	var caller func (config benchConfig) (float64, map[string]int, []float64)
+	var caller func (config benchConfig, duration time.Duration) (float64, map[string]int, []float64)
 	caller = vegetaCall
 	config := flag.String("config", "./benchconf.toml", "config file for bench")
-	output := flag.String("output", "./output.html", "output file path")
+	duration := flag.Duration("duration", benchDuration, "duration for each url")
 	flag.Parse()
 	page := charts.NewPage()
 	page.InitOpts.PageTitle = "ReverseProxy benchmark"
@@ -51,30 +51,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// tests := map[string]benchConfig{
-	// 	"Simple TLS": {
-	// 		url:    "https://10.1.11.3/bench",
-	// 		cmdCPU: []string{`docker-compose`, `exec`, `-T`, `simple`, `sh`, `-c`, `mpstat 1 5 | grep Average |awk '/^Average/ {print int($3)}'|tail -n 1`},
-	// 	},
-	// 	"Traefik TLS": {
-	// 		url:    "https://10.1.11.4/bench",
-	// 		cmdCPU: []string{`docker-compose`, `exec`, `-T`, `traefik`, `sh`, `-c`, `mpstat 1 5 | grep Average |awk '/^Average/ {print int($3)}'|tail -n 1`},
-	// 	},
-	// 	"HaProxy TLS": {
-	// 		url:    "https://10.1.11.5/bench",
-	// 		cmdCPU: []string{`docker-compose`, `exec`, `-T`, `haproxy`, `sh`, `-c`, `mpstat 1 5 | grep Average |awk '/^Average/ {print int($3)}'|tail -n 1`},
-	// 	},
-	// }
-	fmt.Println(tests)
+
+	// fmt.Println(tests)
 	bar.AddXAxis([]string{"Proxies"})
 	var proxies []string
 	proxiesStatuses := make(map[string]map[string]int)
 	statuscodes := make(map[string]struct{})
 	for proxy, url := range tests {
 		time.Sleep(time.Second)
-		fmt.Println(url)
-		reqs, statuses, cpus := caller(url)
-		fmt.Println(cpus)
+		// fmt.Println(url)
+		reqs, statuses, _ := caller(url, *duration)
+		// fmt.Println(cpus)
 		proxiesStatuses[proxy] = statuses
 
 		proxies = append(proxies, proxy)
@@ -103,20 +90,19 @@ func main() {
 		})
 	}
 
-	create, err := os.Create(*output)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// create, err := os.Create(*output)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	page.Add(bar)
 	page.Add(statusBar)
-	page.Render(create)
+	page.Render(os.Stdout)
 
 }
 
-func vegetaCall(config benchConfig) (float64, map[string]int, []float64) {
+func vegetaCall(config benchConfig, duration time.Duration) (float64, map[string]int, []float64) {
 	rate := vegeta.Rate{Freq: 0, Per: 0}
-	duration := benchDuration
 	targeter := vegeta.NewStaticTargeter(vegeta.Target{
 		Method: "GET",
 		URL:    config.Url,
@@ -136,7 +122,7 @@ func vegetaCall(config benchConfig) (float64, map[string]int, []float64) {
 	// vegeta.Attacker{}
 }
 
-func hey(config benchConfig) (float64, map[string]int, []float64) {
+func hey(config benchConfig, duration time.Duration) (float64, map[string]int, []float64) {
 	req, err := http.NewRequest(http.MethodGet, config.Url, http.NoBody)
 	if err != nil {
 		log.Fatal(err)
@@ -156,7 +142,7 @@ func hey(config benchConfig) (float64, map[string]int, []float64) {
 	w.Init()
 	var cpus []float64
 	go func() {
-		timer := time.NewTimer(benchDuration)
+		timer := time.NewTimer(duration)
 		// ticker := time.NewTicker(benchDuration/100)
 
 		for {
