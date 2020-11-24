@@ -116,6 +116,9 @@ func vegetaCall(config benchConfig, duration time.Duration) (float64, map[string
 		metrics.Add(res)
 	}
 	metrics.Close()
+	if len(metrics.Errors) > 0 {
+		fmt.Fprint(os.Stderr, metrics.Errors)
+	}
 	return metrics.Rate, metrics.StatusCodes, nil
 	// fmt.Printf("99th percentile: %s\n", metrics.Latencies.P99)
 	// vegeta.Client()
