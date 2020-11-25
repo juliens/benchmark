@@ -1,10 +1,13 @@
-duration="2m"
+duration="20s"
 address=":8080"
 [[profils]]
     name="HTTP"
     [[profils.configs]]
         name="SimpleReverse"
         url="http://reverseproxy/bench"
+    [[profils.configs]]
+        name="Direct"
+        url="http://server/bench"
     [[profils.configs]]
         name="Traefik"
         url="http://traefik/bench"
