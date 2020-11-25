@@ -18,13 +18,13 @@ import (
 const benchDuration = 30 * time.Second
 
 type profil struct {
-	Name   string
+	Name    string
 	Configs []benchConfig
 }
 
 type benchconfigs struct {
 	Duration string
-	Address string
+	Address  string
 	Profils  []profil
 }
 
@@ -59,9 +59,9 @@ func main() {
 	}
 
 	fmt.Println("Start benchmarking")
-
-	for _, conf := range conf.Profils {
-		getChart(conf, duration, page)
+	for _, cfg := range conf.Profils {
+		fmt.Printf("Start bench of %s\n", cfg.Name)
+		getChart(cfg, duration, page)
 	}
 
 	if len(conf.Address) > 0 {
@@ -85,11 +85,12 @@ func getChart(config profil, duration time.Duration, page *charts.Page) {
 	statusBar := charts.NewBar()
 	statusBar.SetGlobalOptions(charts.TitleOpts{Title: "Status code"}, charts.ToolboxOpts{Show: false})
 
-		bar.AddXAxis([]string{"Proxies"})
+	bar.AddXAxis([]string{"Proxies"})
 	var proxies []string
 	proxiesStatuses := make(map[string]map[string]int)
 	statuscodes := make(map[string]struct{})
 	for _, conf := range config.Configs {
+		fmt.Printf("Start proxy %s\n", conf.Name)
 		time.Sleep(time.Second)
 		reqs, statuses := vegetaCall(conf, duration)
 		proxiesStatuses[conf.Name] = statuses
@@ -109,7 +110,7 @@ func getChart(config profil, duration time.Duration, page *charts.Page) {
 
 	statusBar.AddXAxis(proxies)
 	for code := range statuscodes {
-		bar := []int{}
+		var bar []int
 		for _, proxy := range proxies {
 			bar = append(bar, proxiesStatuses[proxy][code])
 		}
