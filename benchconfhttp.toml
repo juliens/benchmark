@@ -1,6 +1,24 @@
-["SimpleReverse"]
-url="http://127.0.0.1:8080/bench"
-["Traefik"]
-url="http://127.0.0.1:8081/bench"
-["HaProxy"]
-url="http://127.0.0.1:8082/bench"
+duration="5s"
+address=":8100"
+[[profils]]
+    name="HTTP"
+    [[profils.configs]]
+        name="SimpleReverse"
+        url="http://127.0.0.1:8080/bench"
+    [[profils.configs]]
+        name="Traefik"
+        url="http://127.0.0.1:8081/bench"
+    [[profils.configs]]
+        name="HaProxy"
+        url="http://127.0.0.1:8082/bench"
+[[profils]]
+    name="HTTPS"
+    [[profils.configs]]
+        name="SimpleReverse"
+        url="https://127.0.0.1:8443/bench"
+    [[profils.configs]]
+        name="Traefik"
+        url="https://127.0.0.1:8444/bench"
+    [[profils.configs]]
+        name="HaProxy"
+        url="https://127.0.0.1:8445/bench"

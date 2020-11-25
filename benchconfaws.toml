@@ -1,8 +1,30 @@
-["Envoy"]
-url="http://envoy:8080/bench"
-["Traefik"]
-url="http://traefik/bench"
-["HaProxy"]
-url="http://haproxy/bench"
-["Reverse"]
-url="http://reverseproxy/bench"
+duration="2m"
+address=":8080"
+[[profils]]
+    name="HTTP"
+    [[profils.configs]]
+        name="SimpleReverse"
+        url="http://reverseproxy/bench"
+    [[profils.configs]]
+        name="Traefik"
+        url="http://traefik/bench"
+    [[profils.configs]]
+        name="HaProxy"
+        url="http://haproxy/bench"
+    [[profils.configs]]
+        name="Envoy"
+        url="http://envoy:8080/bench"
+[[profils]]
+    name="HTTPS"
+    [[profils.configs]]
+        name="SimpleReverse"
+        url="https://reverseproxy/bench"
+    [[profils.configs]]
+        name="Traefik"
+        url="https://traefik/bench"
+    [[profils.configs]]
+        name="HaProxy"
+        url="https://haproxy/bench"
+    [[profils.configs]]
+        name="Envoy"
+        url="https://envoy:8443/bench"

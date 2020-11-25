@@ -1,71 +1,101 @@
 package main
 
 import (
-	"bytes"
 	"crypto/tls"
-	"encoding/csv"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"math"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/go-echarts/go-echarts/charts"
-	"github.com/rakyll/hey/requester"
 	vegeta "github.com/tsenart/vegeta/lib"
 )
 
 const benchDuration = 30 * time.Second
 
-type benchConfig struct {
-	Url    string
-	cmdCPU []string
+type profil struct {
+	Name   string
+	Configs []benchConfig
 }
 
+type benchconfigs struct {
+	Duration string
+	Address string
+	Profils  []profil
+}
 
+type benchConfig struct {
+	Name string
+	Url  string
+}
 
 func main() {
-	var caller func (config benchConfig, duration time.Duration) (float64, map[string]int, []float64)
-	caller = vegetaCall
-	config := flag.String("config", "./benchconf.toml", "config file for bench")
-	duration := flag.Duration("duration", benchDuration, "duration for each url")
+	config := flag.String("config", "./benchconfhttp.toml", "config file for bench")
 	flag.Parse()
+
 	page := charts.NewPage()
 	page.InitOpts.PageTitle = "ReverseProxy benchmark"
+	if config == nil || len(*config) == 0 {
+		log.Fatal("No config file")
+	}
+
+	var conf benchconfigs
+	_, err := toml.DecodeFile(*config, &conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	duration := benchDuration
+	if len(conf.Duration) > 0 {
+		parseDuration, err := time.ParseDuration(conf.Duration)
+		if err != nil {
+			fmt.Fprint(os.Stderr, err)
+		} else {
+			duration = parseDuration
+		}
+	}
+
+	fmt.Println("Start benchmarking")
+
+	for _, conf := range conf.Profils {
+		getChart(conf, duration, page)
+	}
+
+	if len(conf.Address) > 0 {
+		fmt.Printf("Listening on %s", conf.Address)
+		err := http.ListenAndServe(conf.Address, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			page.Render(writer)
+		}))
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		page.Render(os.Stdout)
+	}
+
+}
+
+func getChart(config profil, duration time.Duration, page *charts.Page) {
 	bar := charts.NewBar()
-	bar.SetGlobalOptions(charts.TitleOpts{Title: fmt.Sprintf("Benchmark during %s per proxy", benchDuration.String())}, charts.ToolboxOpts{Show: false})
+	bar.SetGlobalOptions(charts.TitleOpts{Title: fmt.Sprintf("Benchmark %s\nduring %s per proxy", config.Name, duration.String())}, charts.ToolboxOpts{Show: false})
 
 	statusBar := charts.NewBar()
 	statusBar.SetGlobalOptions(charts.TitleOpts{Title: "Status code"}, charts.ToolboxOpts{Show: false})
 
-	var tests map[string]benchConfig
-	if config == nil || len(*config) == 0 {
-		log.Fatal("No config file")
-	}
-	_, err := toml.DecodeFile(*config, &tests)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// fmt.Println(tests)
-	bar.AddXAxis([]string{"Proxies"})
+		bar.AddXAxis([]string{"Proxies"})
 	var proxies []string
 	proxiesStatuses := make(map[string]map[string]int)
 	statuscodes := make(map[string]struct{})
-	for proxy, url := range tests {
+	for _, conf := range config.Configs {
 		time.Sleep(time.Second)
-		// fmt.Println(url)
-		reqs, statuses, _ := caller(url, *duration)
-		// fmt.Println(cpus)
-		proxiesStatuses[proxy] = statuses
+		reqs, statuses := vegetaCall(conf, duration)
+		proxiesStatuses[conf.Name] = statuses
 
-		proxies = append(proxies, proxy)
-		bar.AddYAxis(proxy, []float64{math.Round(reqs)}, charts.LabelTextOpts{
+		proxies = append(proxies, conf.Name)
+		bar.AddYAxis(conf.Name, []float64{math.Round(reqs)}, charts.LabelTextOpts{
 			Show:      true,
 			Position:  "top",
 			Formatter: "{a}: {c} req/s",
@@ -90,18 +120,11 @@ func main() {
 		})
 	}
 
-	// create, err := os.Create(*output)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	page.Add(bar)
 	page.Add(statusBar)
-	page.Render(os.Stdout)
-
 }
 
-func vegetaCall(config benchConfig, duration time.Duration) (float64, map[string]int, []float64) {
+func vegetaCall(config benchConfig, duration time.Duration) (float64, map[string]int) {
 	rate := vegeta.Rate{Freq: 0, Per: 0}
 	targeter := vegeta.NewStaticTargeter(vegeta.Target{
 		Method: "GET",
@@ -119,91 +142,5 @@ func vegetaCall(config benchConfig, duration time.Duration) (float64, map[string
 	if len(metrics.Errors) > 0 {
 		fmt.Fprint(os.Stderr, metrics.Errors)
 	}
-	return metrics.Rate, metrics.StatusCodes, nil
-	// fmt.Printf("99th percentile: %s\n", metrics.Latencies.P99)
-	// vegeta.Client()
-	// vegeta.Attacker{}
-}
-
-func hey(config benchConfig, duration time.Duration) (float64, map[string]int, []float64) {
-	req, err := http.NewRequest(http.MethodGet, config.Url, http.NoBody)
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Set("Content-Type", "text/html")
-
-	writer := &bytes.Buffer{}
-	w := &requester.Work{
-		Request: req,
-		N:       math.MaxInt32,
-		C:       250,
-		Timeout: 20,
-		// DisableKeepAlives:  *disableKeepAlives,
-		Output: "csv",
-		Writer: writer,
-	}
-	w.Init()
-	var cpus []float64
-	go func() {
-		timer := time.NewTimer(duration)
-		// ticker := time.NewTicker(benchDuration/100)
-
-		for {
-			select {
-			case <-timer.C:
-				w.Stop()
-				return
-				// case <-ticker.C:
-				// 	cmd := exec.Command(config.cmdCPU[0], config.cmdCPU[1:]...)
-				// 	var out bytes.Buffer
-				// 	cmd.Stdout = &out
-				// 	cmd.Stderr = &out
-				// 	cmd.Run()
-				// 	cpuStat, _ := strconv.ParseFloat(strings.TrimSpace(out.String()), 64)
-				// 	cpus = append(cpus, cpuStat)
-			}
-		}
-
-	}()
-
-	w.Run()
-
-	reader := csv.NewReader(writer)
-	var count float64
-	var last []string
-	statuses := map[string]int{}
-	reader.Read()
-	first := true
-	var firstOffset float64
-	for {
-		record, err := reader.Read()
-
-		if first {
-			if len(record) < 8 {
-				fmt.Printf("Error %d", len(record))
-				return 0, nil, nil
-			}
-			var err error
-			firstOffset, err = strconv.ParseFloat(record[7], 64)
-			if err != nil {
-				log.Fatal(err)
-			}
-			first = false
-		}
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			log.Fatal(err)
-		}
-		statuses[record[6]]++
-		last = record
-		count++
-	}
-	offset, err := strconv.ParseFloat(last[7], 64)
-	return count / (offset - firstOffset), statuses, cpus
-	// break
-	// fmt.Println(reader.Read())
-	// fmt.Println(reader.Read())
+	return metrics.Rate, metrics.StatusCodes
 }
