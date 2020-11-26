@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -16,6 +17,7 @@ import (
 )
 
 const benchDuration = 30 * time.Second
+const timeoutDuration = 30 * time.Second
 
 type profil struct {
 	Name    string
@@ -34,6 +36,25 @@ type benchConfig struct {
 }
 
 func main() {
+
+	var rLimit syscall.Rlimit
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		fmt.Println("Error Getting Rlimit ", err)
+	}
+	fmt.Println(rLimit)
+	rLimit.Max = 999999
+	rLimit.Cur = 999999
+	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		fmt.Println("Error Setting Rlimit ", err)
+	}
+	err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		fmt.Println("Error Getting Rlimit ", err)
+	}
+	fmt.Println("Rlimit Final", rLimit)
+
 	config := flag.String("config", "./benchconfhttp.toml", "config file for bench")
 	flag.Parse()
 
@@ -44,7 +65,7 @@ func main() {
 	}
 
 	var conf benchconfigs
-	_, err := toml.DecodeFile(*config, &conf)
+	_, err = toml.DecodeFile(*config, &conf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,10 +80,12 @@ func main() {
 	}
 
 	fmt.Println("Start benchmarking")
-	for _, cfg := range conf.Profils {
-		fmt.Printf("Start bench of %s\n", cfg.Name)
-		getChart(cfg, duration, page)
-	}
+	go func() {
+		for _, cfg := range conf.Profils {
+			fmt.Printf("Start bench of %s\n", cfg.Name)
+			getChart(cfg, duration, page)
+		}
+	}()
 
 	if len(conf.Address) > 0 {
 		fmt.Printf("Listening on %s", conf.Address)
@@ -82,10 +105,15 @@ func getChart(config profil, duration time.Duration, page *charts.Page) {
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.TitleOpts{Title: fmt.Sprintf("Benchmark %s\nduring %s per proxy", config.Name, duration.String())}, charts.ToolboxOpts{Show: false})
 
+
 	statusBar := charts.NewBar()
 	statusBar.SetGlobalOptions(charts.TitleOpts{Title: "Status code"}, charts.ToolboxOpts{Show: false})
 
 	bar.AddXAxis([]string{"Proxies"})
+
+
+	page.Add(bar)
+
 	var proxies []string
 	proxiesStatuses := make(map[string]map[string]int)
 	statuscodes := make(map[string]struct{})
@@ -120,19 +148,34 @@ func getChart(config profil, duration time.Duration, page *charts.Page) {
 			Formatter: "{a}: {c}",
 		})
 	}
-
-	page.Add(bar)
 	page.Add(statusBar)
+
 }
 
 func vegetaCall(config benchConfig, duration time.Duration) (float64, map[string]int) {
+	cfg := &tls.Config{InsecureSkipVerify: true}
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = cfg
+
+	ticker := time.NewTicker(time.Second)
+	start := time.Now()
+	for range ticker.C {
+		resp, err := http.Get(config.Url)
+		if resp !=nil && resp.StatusCode == 200 {
+			break
+		}
+		if time.Since(start) > timeoutDuration {
+			fmt.Println(resp, err)
+			return 0, map[string]int{"Timeout":1}
+		}
+	}
+	ticker.Stop()
 	rate := vegeta.Rate{Freq: 0, Per: 0}
 	targeter := vegeta.NewStaticTargeter(vegeta.Target{
 		Method: "GET",
 		URL:    config.Url,
 	})
 
-	cfg := &tls.Config{InsecureSkipVerify: true}
+
 	attacker := vegeta.NewAttacker(vegeta.TLSConfig(cfg), vegeta.MaxWorkers(250))
 
 	var metrics vegeta.Metrics
@@ -143,5 +186,7 @@ func vegetaCall(config benchConfig, duration time.Duration) (float64, map[string
 	if len(metrics.Errors) > 0 {
 		fmt.Fprint(os.Stderr, metrics.Errors)
 	}
+
+	fmt.Println(metrics.Rate)
 	return metrics.Rate, metrics.StatusCodes
 }

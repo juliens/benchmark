@@ -11,7 +11,6 @@ services:
     ports:
       - 8080:80
       - 8443:443
-      - 8090:8080
     environment:
       - GOGC=30000
   traefik:
@@ -36,4 +35,6 @@ services:
   whoami:
     container_name: whoami
     image: containous/whoami
+    ports:
+      - 8090:80
     restart: always

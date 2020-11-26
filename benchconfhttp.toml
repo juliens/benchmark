@@ -6,6 +6,9 @@ address=":8100"
         name="SimpleReverse"
         url="http://127.0.0.1:8080/bench"
     [[profils.configs]]
+        name="Direct"
+        url="http://127.0.0.1:8090/bench"
+    [[profils.configs]]
         name="Traefik"
         url="http://127.0.0.1:8081/bench"
     [[profils.configs]]
