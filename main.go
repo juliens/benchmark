@@ -103,15 +103,12 @@ func main() {
 
 func getChart(config profil, duration time.Duration, page *charts.Page) {
 	bar := charts.NewBar()
-	bar.SetGlobalOptions(charts.TitleOpts{Title: fmt.Sprintf("Benchmark %s\nduring %s per proxy", config.Name, duration.String())}, charts.ToolboxOpts{Show: false})
-
+	bar.SetGlobalOptions(charts.TitleOpts{Title: fmt.Sprintf("Benchmark %s\nduring %s per proxy", config.Name, duration.String())}, charts.ToolboxOpts{Show: true})
 
 	statusBar := charts.NewBar()
 	statusBar.SetGlobalOptions(charts.TitleOpts{Title: "Status code"}, charts.ToolboxOpts{Show: false})
 
 	bar.AddXAxis([]string{"Proxies"})
-
-
 	page.Add(bar)
 
 	var proxies []string
