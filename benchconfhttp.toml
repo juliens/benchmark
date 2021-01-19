@@ -1,5 +1,6 @@
 duration="5s"
 address=":8100"
+maxWorkers=10
 [[profils]]
     name="HTTP"
     [[profils.configs]]
@@ -14,14 +15,14 @@ address=":8100"
     [[profils.configs]]
         name="HaProxy"
         url="http://127.0.0.1:8082/bench"
-[[profils]]
-    name="HTTPS"
-    [[profils.configs]]
-        name="SimpleReverse"
-        url="https://127.0.0.1:8443/bench"
-    [[profils.configs]]
-        name="Traefik"
-        url="https://127.0.0.1:8444/bench"
-    [[profils.configs]]
-        name="HaProxy"
-        url="https://127.0.0.1:8445/bench"
+#[[profils]]
+#    name="HTTPS"
+#    [[profils.configs]]
+#        name="SimpleReverse"
+#        url="https://127.0.0.1:8443/bench"
+#    [[profils.configs]]
+#        name="Traefik"
+#        url="https://127.0.0.1:8444/bench"
+#    [[profils.configs]]
+#        name="HaProxy"
+#        url="https://127.0.0.1:8445/bench"

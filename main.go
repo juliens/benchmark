@@ -37,6 +37,7 @@ type benchconfigs struct {
 type benchConfig struct {
 	Name string
 	Url  string
+	DisableHTTP2 bool
 }
 
 type bench struct {
@@ -307,7 +308,7 @@ func vegetaCall(config benchConfig, duration time.Duration) (float64, map[string
 		URL:    config.Url,
 	})
 
-	attacker := vegeta.NewAttacker(vegeta.TLSConfig(cfg), vegeta.MaxWorkers(500))
+	attacker := vegeta.NewAttacker(vegeta.TLSConfig(cfg), vegeta.MaxWorkers(500), vegeta.HTTP2(!config.DisableHTTP2))
 
 	var metrics vegeta.Metrics
 	for res := range attacker.Attack(targeter, rate, duration, "Big Bang!") {

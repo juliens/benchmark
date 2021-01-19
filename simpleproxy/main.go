@@ -1,12 +1,13 @@
 package main
 
 import (
-	"crypto/tls"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"strings"
 	// _ "net/http/pprof"
 	"sync"
 	"time"
@@ -31,11 +32,9 @@ type bufferPool struct {
 func (b *bufferPool) Get() []byte {
 	return b.pool.Get().([]byte)
 }
-
 func (b *bufferPool) Put(bytes []byte) {
 	b.pool.Put(bytes)
 }
-
 func main() {
 	// debug.SetGCPercent(1000)
 	host := flag.String("backend", "172.17.0.2", "Backend hostname or ip")
@@ -43,13 +42,11 @@ func main() {
 	if host == nil {
 		log.Fatal("-backend and -addr cannot be nil")
 	}
-
 	dialer := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 		DualStack: true,
 	}
-
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		MaxIdleConnsPerHost:   500,
@@ -58,69 +55,68 @@ func main() {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-
-	proxy := &httputil.ReverseProxy{
+	hosts := make(chan string, 10000)
+	go func() {
+		split := strings.Split(*host, ",")
+		for {
+			for _, s := range split {
+				hosts <- s
+			}
+		}
+	}()
+	var proxy http.Handler
+	proxy = &httputil.ReverseProxy{
 		Director: func(outReq *http.Request) {
 			outReq.URL.Scheme = "http"
-			outReq.URL.Host = *host
+			outReq.URL.Host = <-hosts
 		},
 		Transport:  transport,
 		BufferPool: newBufferPool(),
 	}
 
-	tcpLn, err := net.Listen("tcp", ":443")
-	if err != nil {
-		log.Fatal(err)
-	}
-	keepAliveListener := tcpKeepAliveListener{tcpLn.(*net.TCPListener)}
-	srv := http.Server{
-		Handler: proxy,
-		TLSConfig: &tls.Config{
-			MinVersion:    tls.VersionTLS13,
-			Renegotiation: tls.RenegotiateNever,
-		},
-	}
-	cert, err := GenerateCert()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ln := tls.NewListener(keepAliveListener, &tls.Config{
-		Certificates: []tls.Certificate{*cert},
-	})
-
+	// keepAliveListener := tcpKeepAliveListener{tcpLn.(*net.TCPListener)}
+	// srv := http.Server{
+	// 	Handler: proxy,
+	// 	TLSConfig: &tls.Config{
+	// 		MinVersion:    tls.VersionTLS13,
+	// 		Renegotiation: tls.RenegotiateNever,
+	// 	},
+	// }
+	// cert, err := GenerateCert()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// ln := tls.NewListener(keepAliveListener, &tls.Config{
+	// 	Certificates: []tls.Certificate{*cert},
+	// })
+	// // go func() {
+	//     http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
+	//     http.ListenAndServe(":8080", http.DefaultServeMux)
+	// }()
 	// go func() {
-	// 	http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
-	// 	http.ListenAndServe(":8080", http.DefaultServeMux)
+	// 	err := srv.Serve(ln)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
 	// }()
 
-	go func() {
-		err := srv.Serve(ln)
+	proxy = http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		start := time.Now()
+		req.URL.Scheme = "http"
+		req.URL.Host = <-hosts
+		fmt.Println("req", time.Since(start))
+		resp, err := transport.RoundTrip(req)
+		fmt.Println("rt", time.Since(start))
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(rw, "%v", err)
+			return
 		}
-	}()
+		fmt.Println("err", time.Since(start))
+		resp.Write(rw)
 
-	log.Fatal(http.ListenAndServe(":80", proxy))
-}
-
-type tcpKeepAliveListener struct {
-	*net.TCPListener
-}
-
-func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return nil, err
-	}
-
-	if err = tc.SetKeepAlive(true); err != nil {
-		return nil, err
-	}
-
-	if err = tc.SetKeepAlivePeriod(3 * time.Minute); err != nil {
-		return nil, err
-	}
-
-	return tc, nil
+		fmt.Println("write", time.Since(start))
+		rw.(http.Flusher).Flush()
+		fmt.Println("flush", time.Since(start))
+	})
+	log.Fatal(http.ListenAndServe(":8080", proxy))
 }

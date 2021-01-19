@@ -16,7 +16,7 @@ address=":8080"
         url="http://haproxy/bench"
     [[profils.configs]]
         name="Envoy"
-        url="http://envoy:8080/bench"
+        url="http://envoy/bench"
 [[profils]]
     name="HTTPS"
     [[profils.configs]]
@@ -30,4 +30,4 @@ address=":8080"
         url="https://haproxy/bench"
     [[profils.configs]]
         name="Envoy"
-        url="https://envoy:8443/bench"
+        url="https://envoy/bench"
